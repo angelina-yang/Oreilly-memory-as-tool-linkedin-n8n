@@ -94,14 +94,13 @@ Replace `[google_doc_url]` with a Google Doc containing the topic/article for th
 
 ```
 explicit-memory-linkedin-workflow/
-├── README.md                              # This file
+├── README.md                              # Main overview & concepts
+├── QUICKSTART.md                          # 15-minute setup guide
+├── INDEX.md                               # Repository navigation & FAQ
 ├── SETUP.md                               # Detailed configuration guide
 ├── explicit-memory-linkedin-workflow.json # The n8n workflow (import this)
 ├── .gitignore                             # Git ignore patterns
-└── docs/
-    ├── ARCHITECTURE.md                    # Technical deep-dive
-    ├── MEMORY-SYSTEM.md                   # Memory management details
-    └── CUSTOMIZATION.md                   # How to adapt for other use cases
+└── LICENSE                                # MIT License
 ```
 
 ## Configuration
