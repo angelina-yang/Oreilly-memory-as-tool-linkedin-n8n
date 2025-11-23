@@ -1,0 +1,1127 @@
+{
+  "name": "Oreilly-memory-as-tool-linkedin-n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "YOUR_WEBHOOK_ID_1",
+        "options": {
+          "responseData": "success"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1968,
+        608
+      ],
+      "id": "e527eca2-9313-446a-92ea-03afa5314acb",
+      "name": "Webhook",
+      "webhookId": "YOUR_WEBHOOK_ID_1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the source content URL from webhook\nconst text = $input.first().json.body.text;\n\n// Extract the source content document ID from the URL\nconst sourceUrl = text.trim();\nconst sourceMatch = sourceUrl.match(/\\/d\\/([a-zA-Z0-9-_]+)/);\nconst sourceDocId = sourceMatch ? sourceMatch[1] : null;\n\n// Documents for Angelina\nconst ANGELINA_CLIENT_CONTEXT_ID = \"YOUR_GOOGLE_DOC_ID\";\nconst ANGELINA_CLIENT_CONTEXT_URL = \"https://docs.google.com/document/d/YOUR_GOOGLE_DOC_ID\";\n\nconst ANGELINA_MEMORY_BANK_ID = \"YOUR_GOOGLE_DOC_ID\";\nconst ANGELINA_MEMORY_BANK_URL = \"https://docs.google.com/document/d/YOUR_GOOGLE_DOC_ID\";\n\n// Return structured data for next nodes\nreturn [\n  {\n    // Client context (Angelina's bio/info from WO)\n    clientContextId: ANGELINA_CLIENT_CONTEXT_ID,\n    clientContextUrl: ANGELINA_CLIENT_CONTEXT_URL,\n    \n    // Source content from the Slack command (the article/paper she wants to post about)\n    sourceContentId: sourceDocId,\n    sourceContentUrl: sourceUrl,\n    \n    // Memory/style guide (Customized for Angelina)\n    memoryLearningsId: ANGELINA_MEMORY_BANK_ID,\n    memoryLearningsUrl: ANGELINA_MEMORY_BANK_URL\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1744,
+        608
+      ],
+      "id": "96f48d21-682d-4196-b302-3b638decea85",
+      "name": "Get base context"
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.google.com/document/d/{{ $json.sourceContentId }}/export?format=txt",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1520,
+        704
+      ],
+      "id": "159c0ca3-fc66-4b98-b699-8a4497173a87",
+      "name": "Get source context"
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.google.com/document/d/{{ $json.clientContextId }}/export?format=txt",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1520,
+        512
+      ],
+      "id": "dc8b863d-5a2f-4321-a76e-97fbe5b9c3f9",
+      "name": "Get client context"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1296,
+        576
+      ],
+      "id": "c8f7d82a-3a73-4c75-9beb-a11033568ed8",
+      "name": "Merge context"
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.google.com/document/d/{{ $json.memoryLearningsId }}/export?format=txt",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1520,
+        320
+      ],
+      "id": "d893b159-0077-4565-a263-7626a9b2d04c",
+      "name": "Get memory and learnings",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+          "name": "Google Docs GEO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "=claude-opus-4-1-20250805",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert LinkedIn ghostwriter crafting content for your client. Your goal is to capture their authentic voice while maximizing engagement. Generate 10 different LinkedIn hooks based on the provided inputs.\n\nCLIENT'S GOAL & INSTRUCTIONS:\n{{ $json.additionalInstruction }}\n\nWRITING STYLE GUIDE:\n{{ $json.styleGuide }}\n\nCLIENT CONTEXT:\n{{ $json.clientInfo }}\n\nSOURCE MATERIAL:\n{{ $json.sourceContent }}\n\nYOUR TASK:\nCreate 10 hooks that:\n1. Follow the writing style guide provided above from the styleGuide\n2. Align with the client's voice and expertise in the clientInfo\n3. Extract different insights/angles from the source material in the sourceContent\n4. PRIORITIZE the client's stated goal and instructions above from the additionalInstruction\n5. Feel natural - as if the client wrote them personally\n6. Stop the scroll and spark engagement\n\nFormat output EXACTLY as:\nHook 1 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 2 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 3 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 4 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 5 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 6 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 7 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 8 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 9 [Angle: descriptive label]: [hook text]\n[rehook text]\n---\nHook 10 [Angle: descriptive label]: [hook text]\n[rehook text]\n---"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        -848,
+        608
+      ],
+      "id": "2b40bea3-b445-4143-99fd-7e6c6cff9bba",
+      "name": "Draft hook",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_ANTHROPIC_API_CREDENTIAL_ID",
+          "name": "Anthropic API Key for the 2nd Project"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "sendAndWait",
+        "user": {
+          "__rl": true,
+          "value": "YOUR_SLACK_USER_ID",
+          "mode": "list",
+          "cachedResultName": "angelina"
+        },
+        "message": "={{ $json.slackMessage }}",
+        "responseType": "freeText",
+        "options": {
+          "messageButtonLabel": "Select hook",
+          "responseFormTitle": "Choose Your Preferred Hook",
+          "responseFormDescription": "Select the hook number (1-10) that best fits the post",
+          "responseFormButtonLabel": "Submit choice",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 10,
+              "resumeUnit": "minutes"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -272,
+        512
+      ],
+      "id": "a88c01a1-65a5-4815-a7f1-6fa4c80e35f3",
+      "name": "Send message and wait for response",
+      "webhookId": "YOUR_WEBHOOK_ID_2",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Angelina WO Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const claudeOutput = $input.first().json.content[0].text;\n\n// Split by --- to get individual hooks\nconst hookSections = claudeOutput.split('---').map(s => s.trim()).filter(s => s);\n\nlet slackMessage = \"*\ud83c\udfaf Choose a hook for the LinkedIn post:*\\n\\n\";\n\nhookSections.forEach((section, index) => {\n  // Extract angle from [Angle: ...] pattern\n  const angleMatch = section.match(/\\[Angle: (.+?)\\]/);\n  const angle = angleMatch ? angleMatch[1] : `Option ${index + 1}`;\n  \n  // Extract hook and rehook\n  const lines = section.split('\\n').filter(line => line.trim());\n  const hookLine = lines[0].replace(/Hook \\d+ \\[Angle: .+?\\]: /, '');\n  const rehookLine = lines[1] || '';\n  \n  slackMessage += `*Option ${index + 1}: ${angle}*\\n`;\n  slackMessage += `>Hook: _${hookLine}_\\n`;\n  slackMessage += `>Rehook: _${rehookLine}_\\n\\n`;\n});\n\nslackMessage += \"Reply with 1-10 to select.\";\n\nreturn [{ \n  slackMessage: slackMessage,\n  hooks: hookSections \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        608
+      ],
+      "id": "608abae0-5b73-4e20-8ff7-4df20a983531",
+      "name": "Format Hooks"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all four documents from the merge output\nconst allItems = $input.all();\n\n// Extract checklist from the style guide\nconst styleGuideText = allItems[0].json.data;\nconst checklistStart = styleGuideText.indexOf('## LinkedIn Post Self-Check Verification');\nconst checklistEnd = styleGuideText.indexOf('## \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550', checklistStart);\nconst checkList = styleGuideText.substring(checklistStart, checklistEnd).trim();\n\nreturn [{\n  styleGuide: allItems[0].json.data,\n  clientInfo: allItems[1].json.data,\n  sourceContent: allItems[2].json.data,\n  additionalInstruction: allItems[3].json.data.text,\n  checkList: checkList\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1072,
+        608
+      ],
+      "id": "a53a9869-3f8e-470e-a14b-56c4df34a45a",
+      "name": "Restructure Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items from the merge\nconst items = $items();\n\n// Item 0 has the selection, Item 1 has all the data\nconst selection = parseInt(items[0].json.data.text);\nconst storedData = items[1].json;\n\n// Parse the hooks array (it's stored as a JSON string)\nconst hooksArray = JSON.parse(storedData.hooks);\n\n// Extract the selected hook (array is 0-indexed, selection is 1-indexed)\nconst selectedHookFull = hooksArray[selection - 1];\n\n// Parse the hook details\nconst lines = selectedHookFull.split('\\n').filter(line => line.trim());\n\n// Extract angle\nconst angleMatch = selectedHookFull.match(/\\[Angle: (.+?)\\]/);\nconst angle = angleMatch ? angleMatch[1] : '';\n\n// Extract hook text (first line, remove the prefix)\nconst hookText = lines[0].replace(/Hook \\d+ \\[Angle: .+?\\]: /, '');\n\n// Extract rehook text\nconst rehookText = lines.find((line, index) => index > 0 && line.trim()) || '';\n\n// Prepare the complete hook section\nconst fullHookSection = `${hookText}\\n\\n${rehookText}`;\n\n// Return everything needed for post generation\nreturn [{\n  selectedNumber: selection,\n  selectedAngle: angle,\n  selectedHook: hookText,\n  selectedRehook: rehookText,\n  fullHookSection: fullHookSection,\n  styleGuide: storedData.styleGuide,\n  clientInfo: storedData.clientInfo,\n  sourceContent: storedData.sourceContent,\n  additionalInstruction: storedData.additionalInstruction  \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        608
+      ],
+      "id": "f93b5eaa-7bc9-400e-911a-a17097d3ca95",
+      "name": "Retrieve chosen hook and context"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "=claude-opus-4-1-20250805",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write a complete LinkedIn post using the selected hook.\n\nCLIENT'S GOAL & INSTRUCTIONS:\n{{ $json.additionalInstruction }}\n\nSELECTED HOOK AND REHOOK:\n{{ $json.fullHookSection }}\n\nWRITING STYLE GUIDE:\n{{ $json.styleGuide }}\n\nCLIENT CONTEXT:\n{{ $json.clientInfo }}\n\nSOURCE MATERIAL:\n{{ $json.sourceContent }}\n\nGenerate a complete LinkedIn post that:\n1. Starts with the selected hook and rehook exactly as provided\n2. ALIGNS with the client's stated goal and instructions throughout from additionalInstruction\n3. Follows all formatting and structural rules from the style guide from styleGuide\n4. Maintains the client's voice and leverages their credentials from clientInfo\n5. Draws supporting content from the source material from sourceContent\n6. Ensures the tone and complexity match the intended audience from the instructions\n\n\n\nOutput only the final LinkedIn post text, no explanations or meta-commentary."
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        400,
+        608
+      ],
+      "id": "98b3e76c-0c4a-4beb-a5cd-b8bf8998930e",
+      "name": "Generate post",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_ANTHROPIC_API_CREDENTIAL_ID",
+          "name": "Anthropic API Key for the 2nd Project"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "sendAndWait",
+        "user": {
+          "__rl": true,
+          "value": "YOUR_SLACK_USER_ID",
+          "mode": "list",
+          "cachedResultName": "angelina"
+        },
+        "message": "={{ $json.message }}",
+        "responseType": "freeText",
+        "options": {
+          "messageButtonLabel": "Provide Feedback",
+          "responseFormTitle": "Post Generation Feedback",
+          "responseFormDescription": "After editing the post, please share: 1. What worked well (to repeat) 2. What needs adjustment (to improve) 3. Any style/client-specific preferences  Your feedback helps improve future generations.",
+          "responseFormButtonLabel": "Submit Feedback",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 45,
+              "resumeUnit": "minutes"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1904,
+        608
+      ],
+      "id": "22db36bd-2056-4329-99de-5417d30e9eea",
+      "name": "Send post for review",
+      "webhookId": "YOUR_WEBHOOK_ID_3",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Angelina WO Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const postText = $input.first().json.content[0].text;\n\nconst slackMessage = `\u2705 *Generated LinkedIn Post:*\n\n\\`\\`\\`\n${postText}\n\\`\\`\\`\n\n*Please provide feedback for future improvements:*\n(You don't need to paste your edited version)\n\n1. What worked well? (should repeat)\n2. What needs adjustment? (should change) \n3. Any specific preferences for this style/client?\n\nType your feedback below:`;\n\nreturn [{ \n  message: slackMessage,\n  generatedPost: postText\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        608
+      ],
+      "id": "05785678-c69e-48ec-9ec8-729a324a7e84",
+      "name": "Cleanup"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "YOUR_SLACK_USER_ID",
+          "mode": "list",
+          "cachedResultName": "angelina"
+        },
+        "text": "Post generated successfully - no revisions received",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2352,
+        704
+      ],
+      "id": "6d91f238-520c-4734-98d1-9d3b0363d456",
+      "name": "Workflow complete",
+      "webhookId": "YOUR_WEBHOOK_ID_4",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID_2",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the user's feedback from the IF node output\nconst userFeedback = $json.data.text;\n\n// Get the originally generated version from earlier in the workflow\nconst generatedPost = $node[\"Cleanup\"].json.generatedPost; \n\n// Get the hook and angle information from the selection node\nconst selectionData = $node[\"Retrieve chosen hook and context\"].json;\n\n// Parse the feedback to identify key themes\nconst feedbackLines = userFeedback.split('\\n').filter(line => line.trim());\nconst hasFeedback = userFeedback && userFeedback.trim().length > 0;\n\nreturn [{\n  // The generated post for reference\n  generatedPost: generatedPost,\n  \n  // User's feedback\n  userFeedback: userFeedback,\n  hasFeedback: hasFeedback,\n  \n  // Hook and angle context\n  hookUsed: selectionData.selectedHook,\n  rehookUsed: selectionData.selectedRehook,\n  fullHookSection: selectionData.fullHookSection,\n  angleUsed: selectionData.selectedAngle,\n  \n  // Context for analysis\n  styleGuide: selectionData.styleGuide,\n  clientInfo: selectionData.clientInfo,\n  sourceContent: selectionData.sourceContent,\n  additionalInstruction: selectionData.additionalInstruction, \n  \n  metadata: {\n    feedbackPoints: feedbackLines.length,\n    timestamp: new Date().toISOString(),\n    generatedWordCount: generatedPost.split(/\\s+/).length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        512
+      ],
+      "id": "842a564c-c827-4ab2-9336-34d4ac4830d5",
+      "name": "Prep for learning"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "=claude-opus-4-1-20250805",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Refine the user's feedback into clear, actionable guidelines for future post generation.\n\nUSER FEEDBACK:\n{{ $json.userFeedback }}\n\nCONTEXT (for reference):\n- Hook used: {{ $json.hookUsed }}\n- Angle: {{ $json.angleUsed }}\n- Original goal/instructions: {{ $json.additionalInstruction }}\n\nTask:\n1. Clarify and structure the feedback points from userFeedback\n2. Mark each as either UNIVERSAL (applies to all posts) or CONTEXTUAL (specific to certain situations)  \n3. Add brief implementation notes where helpful\n4. Keep the user's intent - don't add new interpretations\n5. Consider if feedback relates to the original goal and note any alignment issues\n\nFormat the output as a clean list of guidelines that can be added to the memory bank."
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        2576,
+        512
+      ],
+      "id": "f274fdb8-9b79-4865-8d94-beeafe8d9b63",
+      "name": "Learning from feedback",
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_ANTHROPIC_API_CREDENTIAL_ID",
+          "name": "Anthropic API Key for the 2nd Project"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ae77722c-91c8-4db2-8092-f8ea1de21f15",
+              "leftValue": "={{ $json.data.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        608
+      ],
+      "id": "8233d791-c312-4d62-a0fe-9955836fe1e8",
+      "name": "If feedback received"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d37ad91b-4642-416a-90aa-3735db5062bf",
+              "name": "hooks",
+              "value": "={{ $json.hooks }}",
+              "type": "string"
+            },
+            {
+              "id": "f8afc517-41bc-4032-83e2-7116c627e569",
+              "name": "styleGuide",
+              "value": "={{ $node[\"Restructure Data\"].json.styleGuide }}",
+              "type": "string"
+            },
+            {
+              "id": "f37e13e8-ac4b-4e2d-b919-0c08ae277d41",
+              "name": "clientInfo",
+              "value": "={{ $node[\"Restructure Data\"].json.clientInfo }}",
+              "type": "string"
+            },
+            {
+              "id": "c68ff31e-71ee-47fe-beea-411fb95f075c",
+              "name": "sourceContent",
+              "value": "={{ $node[\"Restructure Data\"].json.sourceContent }}",
+              "type": "string"
+            },
+            {
+              "id": "db90eb82-5f22-4c3a-94bd-1779b2433926",
+              "name": "additionalInstruction",
+              "value": "={{ $node[\"Restructure Data\"].json.additionalInstruction }}",
+              "type": "string"
+            },
+            {
+              "id": "f6a2a83f-1601-4420-a836-8411a590484a",
+              "name": "checkList",
+              "value": "={{ $node[\"Restructure Data\"].json.checkList}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -272,
+        704
+      ],
+      "id": "dce8f0ea-48ee-4aa8-9b72-534cf67b1b4c",
+      "name": "Organize context data"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -48,
+        608
+      ],
+      "id": "265a747f-bee3-4bc8-b44e-5912d39076fa",
+      "name": "Merge context with chosen hook"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "=claude-opus-4-1-20250805",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a learning synthesis engine for LinkedIn post generation guidelines. Your role is to merge existing learnings with new feedback to create a coherent, evolving set of user preferences.\n\n## EXISTING LEARNINGS:\n{{ $json.existingLearnings }}\n\n## NEW FEEDBACK (${new Date().toISOString().split('T')[0]}):\n{{ $json.newFeedback }}\n\n\n## NEW FEEDBACK ({{ $now.toISO().split('T')[0] }}):\n${$json.newFeedback}\n\n## SYNTHESIS PRINCIPLES:\n- Recency weighs 60%, historical patterns weigh 40%\n- When rules conflict, keep the one that appears most frequently OR most recently if frequency is equal\n- Convert specific feedback into generalizable rules\n- Combine similar rules into unified principles\n- Never remove core framework elements (those remain in Tier 1)\n\n## YOUR TASK:\n1. Compare new feedback with existing learnings\n2. Identify relationships:\n   - REINFORCES: Strengthen and clarify the existing rule\n   - CONTRADICTS: Resolve by choosing the more frequent/recent pattern\n   - ADDS NEW: Incorporate as new dimension\n   - REFINES: Update existing rule with nuanced understanding\n3. Synthesize into coherent guidelines that:\n   - Remove redundancies and contradictions\n   - Merge similar insights into stronger principles\n   - Prioritize by demonstrated importance/frequency\n   - Keep only actionable, specific guidelines\n\n## OUTPUT REQUIREMENTS:\nBegin your response with:\n## **Last synthesis:** {{ $now.toISO().split('T')[0] }}\n\nThen organize as:\n### Synthesized Guidelines\n[Present clear, actionable rules in order of importance]\n\n### Pattern Recognition\n[Note any emerging patterns from multiple feedback sessions]\n\nFormat each guideline as:\n- **Rule:** [Clear statement]\n- **Implementation:** [Specific how-to]\n- **Confidence:** [High/Medium if pattern is emerging]\n\nWrite in clear, actionable language.\nFocus on what TO DO, not what to avoid.\n"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        512
+      ],
+      "id": "74d19027-1629-496f-b358-df5b95c318ba",
+      "name": "Synthesis feedback context",
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_ANTHROPIC_API_CREDENTIAL_ID",
+          "name": "Anthropic API Key for the 2nd Project"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the refined guidelines from Claude\nconst refinedGuidelines = $input.first().json.content[0].text;\n\n// Get context\nconst feedbackData = $node[\"Prep for learning\"].json;\nconst today = new Date().toISOString().split('T')[0];\n\n// Format the entry for appending\nconst memoryEntry = `\n\n## \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n## Generation Feedback Log\n\n### Entry: ${today} | Hook: \"${feedbackData.hookUsed}\"\n**Angle**: ${feedbackData.angleUsed}\n\n### User Feedback (Raw):\n${feedbackData.userFeedback}\n\n### Refined Guidelines:\n${refinedGuidelines}\n\n---\n`;\n\nreturn [{\n  memoryEntry: memoryEntry\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2928,
+        512
+      ],
+      "id": "eea67041-81da-430d-a406-5208ebb77ac1",
+      "name": "Format feedback"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "=YOUR_GOOGLE_DOC_ID"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        3152,
+        512
+      ],
+      "id": "97924a0b-3653-43bc-bcee-6ccdf3564c7f",
+      "name": "Get past learned context",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+          "name": "Google Docs GEO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// get content from Google Docs\nconst input = $input.first().json;\nconsole.log(\"Input structure:\", JSON.stringify(input, null, 2));\n\nconst fullContent = input.text || input.content || input.document || input;\n\nif (typeof fullContent !== 'string') {\n  console.log(\"fullContent type:\", typeof fullContent);\n  console.log(\"fullContent value:\", fullContent);\n  // Try to convert to string if it's an object\n  fullContent = JSON.stringify(fullContent);\n}\n\nconst startMarker = \"## Learning starts here:\";\nconst startIndex = fullContent.indexOf(startMarker);\n\nlet existingLearnings = \"\";\n\nif (startIndex !== -1) {\n  existingLearnings = fullContent.substring(startIndex + startMarker.length).trim();\n} else {\n  existingLearnings = \"No previous learnings recorded.\";\n}\n\n// Get new feedback \nconst newFeedback = $('Format feedback').first().json.memoryEntry;\n\nreturn [{\n  existingLearnings: existingLearnings,\n  newFeedback: newFeedback,\n  fullDocument: fullContent,\n  startIndex: startIndex + startMarker.length,\n  debugInfo: {\n    inputType: typeof input,\n    contentFound: !!fullContent,\n    markerFound: startIndex !== -1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3376,
+        512
+      ],
+      "id": "627584d2-1866-4e77-83df-cec48a981665",
+      "name": "Format learned context"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from \"Format learned context\" \nconst formatData = $('Format learned context').first().json;\n\n// Get the synthesized content \nconst synthesizedContent = $input.first().json.content[0].text;\n\nconst existingLearnings = formatData.existingLearnings;\nconst fullDocument = formatData.fullDocument;\nconst learningStartIndex = formatData.startIndex;\n\n// Define markers for clearer section separation\nconst CORE_END_MARKER = \"# \ud83d\udd04 LIVING LEARNINGS\";\nconst LEARNING_START_MARKER = \"## Learning starts here:\";\n\n// Find where core framework ends\nconst coreEndIndex = fullDocument.indexOf(CORE_END_MARKER);\n\n// Extract sections\nconst sections = {\n  coreFramework: fullDocument.substring(0, coreEndIndex),\n  learningHeader: fullDocument.substring(coreEndIndex, learningStartIndex),\n  currentLearnings: existingLearnings\n};\n\nreturn [{\n  oldContent: \"## Learning starts here:\\n\\n\" + existingLearnings,\n  newContent: \"## Learning starts here:\\n\\n\" + synthesizedContent,\n  \n  updatedDocument: sections.coreFramework + sections.learningHeader + \"\\n\\n\" + synthesizedContent,\n  \n  // Document ID\n  documentId: \"YOUR_GOOGLE_DOC_ID\"\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3952,
+        512
+      ],
+      "id": "72382003-aff4-4f6f-a484-f96c9e172675",
+      "name": "Finalize feedback context"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "=YOUR_GOOGLE_DOC_ID",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "replaceAll",
+              "text": "={{ $json.oldContent }}",
+              "replaceText": "={{ $json.newContent }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        4176,
+        512
+      ],
+      "id": "f8b121b9-fa34-4451-a92e-469e6109656e",
+      "name": "Update memory bank",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "YOUR_GOOGLE_DOCS_CREDENTIAL_ID",
+          "name": "Google Docs GEO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "YOUR_SLACK_USER_ID",
+          "mode": "list",
+          "cachedResultName": "angelina"
+        },
+        "text": "=\u2705 Feedback accepted and recorded!\n\n\ud83d\udcdd **Synthesis Complete**\n- Memory bank updated: {{ $now.toISO().split('T')[0] }}\n- Guidelines synthesized from feedback\n- Living learnings successfully evolved\n\nView updated memory: https://docs.google.com/document/d/{{ $('Get base context').first().json.memoryLearningsId }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        4400,
+        512
+      ],
+      "id": "9a68eedc-daf1-4770-8584-0a3178bc8908",
+      "name": "Workflow completed",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Angelina WO Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "sendAndWait",
+        "user": {
+          "__rl": true,
+          "value": "YOUR_SLACK_USER_ID",
+          "mode": "list",
+          "cachedResultName": "angelina"
+        },
+        "message": "=What's your goal with this post? Please reply with your intent (e.g., thought leadership, generate leads, share insights, start discussions, promote services, etc.) or any additional instrucitons.",
+        "responseType": "freeText",
+        "options": {
+          "messageButtonLabel": "Set Post Goal",
+          "responseFormTitle": "Define Your Post Objective",
+          "responseFormDescription": "What outcome do you want from this LinkedIn post or what additional instructions do you have? Be specific.",
+          "responseFormButtonLabel": "Submit instructions",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 10,
+              "resumeUnit": "minutes"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -1520,
+        896
+      ],
+      "id": "a109fb78-43c3-4495-8667-5673761f1b2b",
+      "name": "Ask for user instruction",
+      "webhookId": "YOUR_WEBHOOK_ID_6",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Angelina WO Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "=claude-opus-4-1-20250805",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Review this Linkedin post against the writing guidelines checklist.\n\nARTICLE TO REVIEW:\n{{ $json.content[0].text }}\n\nWRITING GUIDELINES CHECKLIST:\n{{ $('Organize context data').first().json.checkList }}\n\nWRITING STYLE GUIDE:\n{{ $('Retrieve chosen hook and context').first().json.styleGuide }}\n\nCLIENT'S GOAL & INSTRUCTIONS:\n{{ $('Retrieve chosen hook and context').first().json.additionalInstruction }}\n\nSOURCE MATERIAL:\n{{ $('Retrieve chosen hook and context').first().json.sourceContent }}\n\nINSTRUCTIONS:\nFor each checklist item, verify if the LinkedIn post meets the requirement. Output your findings in this exact format:\n\n## Checklist Results\n- [ ] or [X] Item description: Brief finding\n- [ ] or [X] Item description: Brief finding\n...\n\n## Overall Assessment\n**Status:** PASS or NEEDS REVISION\n**Word Count:** [count]\n**Hook Word Count:** [count - should be under 10]\n**Issues Found:** [list any problems]\n**Recommendations:** [if any revisions needed]\n\nBe thorough but concise. Flag specific problems with line references if possible. Pay special attention to hook-rehook structure, single core message, and rhythm variation."
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "maxTokens": 10000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        752,
+        688
+      ],
+      "id": "5141d2a3-2216-4f27-a8fe-4ae3a9f70791",
+      "name": "Run checkList",
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_ANTHROPIC_API_CREDENTIAL_ID",
+          "name": "Anthropic API Key for the 2nd Project"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1104,
+        608
+      ],
+      "id": "2f08d4c5-a8e3-4255-997f-f529017a525e",
+      "name": "Merge v1 with checklist"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "=claude-opus-4-1-20250805",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Fix the identified issues in this West Operators blog article while maintaining its core content and ensuring smooth readability.\n\nORIGINAL ARTICLE:\n{{ $json.content[0].text }}\n\nCHECKLIST RESULTS WITH ISSUES:\n{{ $('Merge v1 with checklist').last().json.content[0].text }}\n\nCONTEXT FOR WRITING:\nSelected Hook & Rehook: {{ $('Retrieve chosen hook and context').first().json.fullHookSection }}\nClient Goal: {{ $('Retrieve chosen hook and context').first().json.additionalInstruction }}\nSource Material: {{ $('Retrieve chosen hook and context').first().json.sourceContent }}\nClient Info: {{ $('Retrieve chosen hook and context').first().json.clientInfo }}\n\nWRITING GUIDELINES (must follow):\n{{ $('Retrieve chosen hook and context').first().json.styleGuide }}\n\n---\nINSTRUCTIONS:\n\n1. **Identify issues from checklist:** Review the \"Issues Found\" section above to understand what needs fixing\n\n2. **Make targeted fixes with smooth transitions:**\n   - Fix ONLY the specific problems identified in the checklist\n   - Adjust surrounding sentences if needed to maintain natural flow after fixes\n   - Keep all key content that doesn't have issues: examples, statistics, main arguments\n   - Do NOT rewrite entire sections unless the full section didn't pass the checklist - just fix the flagged issues and ensure transitions read smoothly\n\n3. **Ensure the final post:**\n   - Reads naturally from start to finish (no awkward transitions from edits)\n   - Satisfies ALL items in the Writing Guidelines above\n   - Maintains the hook-rehook structure\n   - Keeps the single core message intact\n   - Preserves the visual rhythm and line breaks\n\n4. **Example approach:**\n   - Issue: \"Hook too long\" \u2192 Trim to under 10 words AND ensure it still makes a clear promise\n   - Issue: \"Same-length sections\" \u2192 Vary the rhythm AND maintain readability\n\nThink of this as smart copy-editing: fix the identified problems while ensuring the post reads smoothly and maintains its impact throughout.\n\nOUTPUT FORMAT:\n[Complete polished LinkedIn post with proper structure: Hook, empty line, rehook, body content, P.S. question]"
+            }
+          ]
+        },
+        "simplify": false,
+        "options": {
+          "maxTokens": 10000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        608
+      ],
+      "id": "984ee4a3-4fbe-46c0-94ef-93daa125fe36",
+      "name": "Post refinement",
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_ANTHROPIC_API_CREDENTIAL_ID",
+          "name": "Anthropic API Key for the 2nd Project"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get base context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get base context": {
+      "main": [
+        [
+          {
+            "node": "Get client context",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get source context",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get memory and learnings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ask for user instruction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get source context": {
+      "main": [
+        [
+          {
+            "node": "Merge context",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Get client context": {
+      "main": [
+        [
+          {
+            "node": "Merge context",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get memory and learnings": {
+      "main": [
+        [
+          {
+            "node": "Merge context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge context": {
+      "main": [
+        [
+          {
+            "node": "Restructure Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft hook": {
+      "main": [
+        [
+          {
+            "node": "Format Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Merge context with chosen hook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Hooks": {
+      "main": [
+        [
+          {
+            "node": "Organize context data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restructure Data": {
+      "main": [
+        [
+          {
+            "node": "Draft hook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve chosen hook and context": {
+      "main": [
+        [
+          {
+            "node": "Generate post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate post": {
+      "main": [
+        [
+          {
+            "node": "Merge v1 with checklist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run checkList",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Send post for review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send post for review": {
+      "main": [
+        [
+          {
+            "node": "If feedback received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep for learning": {
+      "main": [
+        [
+          {
+            "node": "Learning from feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If feedback received": {
+      "main": [
+        [
+          {
+            "node": "Prep for learning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Workflow complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Learning from feedback": {
+      "main": [
+        [
+          {
+            "node": "Format feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Organize context data": {
+      "main": [
+        [
+          {
+            "node": "Merge context with chosen hook",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge context with chosen hook": {
+      "main": [
+        [
+          {
+            "node": "Retrieve chosen hook and context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format feedback": {
+      "main": [
+        [
+          {
+            "node": "Get past learned context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get past learned context": {
+      "main": [
+        [
+          {
+            "node": "Format learned context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format learned context": {
+      "main": [
+        [
+          {
+            "node": "Synthesis feedback context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesis feedback context": {
+      "main": [
+        [
+          {
+            "node": "Finalize feedback context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize feedback context": {
+      "main": [
+        [
+          {
+            "node": "Update memory bank",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update memory bank": {
+      "main": [
+        [
+          {
+            "node": "Workflow completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask for user instruction": {
+      "main": [
+        [
+          {
+            "node": "Merge context",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Run checkList": {
+      "main": [
+        [
+          {
+            "node": "Merge v1 with checklist",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge v1 with checklist": {
+      "main": [
+        [
+          {
+            "node": "Post refinement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post refinement": {
+      "main": [
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "93551db4-ed8f-416d-9a0f-763dace50144",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e6be9c8242980105cb37b2085b1c6ab12e73b6041cffdaa75574597901220456"
+  },
+  "id": "AmWWNQKZUZgDPhGa",
+  "tags": []
+}
