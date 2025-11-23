@@ -1,3 +1,16 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs
+*.log
+...rest of template
+
 # Logs
 logs
 *.log
